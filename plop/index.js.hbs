@@ -1,0 +1,15 @@
+const fs = require("fs");
+const path = require("path");
+const ora = require("ora");
+const chalk = require("chalk");
+
+function main() {
+    const resolving = ora("Reading file").start();
+    const rawInput = fs.readFileSync(path.resolve(__dirname, "input.txt"), "utf-8");
+    
+    resolving.succeed(
+        `Jour ${chalk.red({{day}})} - the answer is ${chalk.bold.magenta('42')}`
+    );
+}
+
+main();
