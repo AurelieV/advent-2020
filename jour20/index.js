@@ -67,7 +67,7 @@ function main() {
     const resolving = ora("Reading file").start();
     const rawInput = fs.readFileSync(path.resolve(__dirname, "input.txt"), "utf-8");
 
-    const tiles = rawInput.split("\n\n").map((rawTile) => {
+    const tiles = rawInput.split("\n\n").map((rawTile, index) => {
         const [tileLine, ...rawRows] = rawTile.split("\n");
         const id = parseInt(tileLine.match(/Tile (\d+):/)[1]);
         const rows = rawRows.map((line) => line.split(""));
@@ -114,12 +114,6 @@ function main() {
             corners.push(id);
         }
     });
-
-    // console.log(matches)
-    // printTile(tiles[0].versions[0])
-    // console.log('\n\n')
-    // printTile(tiles[1].versions[0])
-    // console.log(canVersionsMatch(tiles[0].versions[0], tiles[1].versions[0]))
 
     const result = corners.reduce((p, corner) => p * corner, 1);
 
