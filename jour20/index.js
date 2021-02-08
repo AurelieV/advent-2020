@@ -149,7 +149,9 @@ function convertTile(tileById, { id, version }) {
     let rows = tileById.get(id).rows;
     rows = cutFirstAndLast(rows.map(cutFirstAndLast));
 
-    return getVersion(rows, version);
+    const result = getVersion(rows, version);
+
+    return result;
 }
 function convertLine(line, tileById) {
     const rows = [];
@@ -163,7 +165,61 @@ function convertLine(line, tileById) {
 }
 
 function convertImage(image, tileById) {
-    return image.reduce((result, line) => result.concat(convertLine(line, tileById)), []);
+    return image.reduce((result, line) => {
+        const rows = convertLine(line, tileById);
+        return result.concat(rows);
+    }, []);
+}
+
+const PATTERN = [
+    [0, 18],
+    [1, 0],
+    [1, 5],
+    [1, 6],
+    [1, 11],
+    [1, 12],
+    [1, 17],
+    [1, 18],
+    [1, 19],
+    [2, 1],
+    [2, 4],
+    [2, 7],
+    [2, 10],
+    [2, 13],
+    [2, 16],
+];
+function checkMonster(image, x, y) {
+    return PATTERN.every(([dy, dx]) => image[y + dy][x + dx].value === "#");
+}
+
+function getWaterRough(image) {
+    const img = image.map((line) => line.map((pixel) => ({ value: pixel, isMonster: false })));
+    for (let x = 0; x + 19 < image[0].length; x++) {
+        for (let y = 0; y + 2 < image.length; y++) {
+            const isMonster = checkMonster(img, x, y);
+            if (isMonster) {
+                PATTERN.forEach(([dy, dx]) => {
+                    img[y + dy][x + dx].isMonster = true;
+                });
+            }
+        }
+    }
+    let rough = 0;
+    for (let x = 0; x < image[0].length; x++) {
+        for (let y = 0; y < image.length; y++) {
+            if (img[y][x].value === "#" && !img[y][x].isMonster) {
+                rough++;
+            }
+        }
+    }
+
+    return rough;
+}
+
+function printImage(image, sample) {
+    image.forEach((line, y) => {
+        console.log(line.map((val, x) => (val !== sample[y][x] ? `${chalk.red(val)}` : val)).join(""));
+    });
 }
 
 function main() {
@@ -225,18 +281,30 @@ function main() {
     });
 
     const image = getImage([[{ id: corners[0], version: 0 }]], Math.sqrt(nbTiles), matches);
+    // const image = getImage([[{ id: corners[0], version: 4 }]], Math.sqrt(nbTiles), matches);
     const tileById = new Map(
         tiles.map((tile) => {
             return [tile.id, tile];
         })
     );
     const final = convertImage(image, tileById);
-    console.log(final);
+    const allImages = [
+        getVersion(final, 0),
+        getVersion(final, 1),
+        getVersion(final, 2),
+        getVersion(final, 3),
+        getVersion(final, 4),
+        getVersion(final, 5),
+        getVersion(final, 6),
+        getVersion(final, 7),
+    ];
+
+    const roughs = allImages.map((img) => getWaterRough(img));
+    console.log(roughs)
 
     const result = corners.reduce((p, corner) => p * corner, 1);
-
     resolving.succeed(
-        `Jour ${chalk.red(20)} - found ${corners.length} corners, the answer is ${chalk.bold.magenta(result)}`
+        `Jour ${chalk.red(20)} - found ${corners.length} corners, the answer is ${chalk.bold.magenta(result)}, water rough ${Math.min(...roughs)}`
     );
     console.timeEnd("exec");
 }
