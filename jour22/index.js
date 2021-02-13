@@ -23,32 +23,34 @@ function play(deck1, deck2) {
     return deck1.length === 0 ? deck2 : deck1;
 }
 
-function isEqual(deck1, deck2) {
-    if (deck1.length !== deck2.length) return false;
-    const result = deck1.every((card, index) => card === deck2[index]);
-    return result;
+function getHash(deck) {
+    return deck.join('_');
+}
+function saveRound(deck1, deck2, previousRounds) {
+    const hash1 = getHash(deck1);
+    const hash2 = getHash(deck2);
+    previousRounds.set(hash1, hash2);
 }
 function isALoop(deck1, deck2, previousRounds) {
-    return previousRounds.some(({ deck1: d1, deck2: d2 }) => isEqual(d1, deck1) && isEqual(d2, deck2));
+    const hash1 = getHash(deck1);
+    const hash2 = getHash(deck2);
+    return previousRounds.get(hash1) === hash2;
 }
 
-function playRecursiveRound(deck1, deck2, previousRounds) {
+function playRecursiveRound(deck1, deck2, previousRounds, gameId) {
     if (isALoop(deck1, deck2, previousRounds)) {
+        // console.log("Its a LOOP")
         return true;
     }
-    const currentRound = {
-        deck1: [...deck1],
-        deck2: [...deck2],
-    };
-    previousRounds.push(currentRound);
+    saveRound(deck1, deck2, previousRounds)
 
     const card1 = deck1.shift();
     const card2 = deck2.shift();
 
     let winner;
     if (card1 <= deck1.length && card2 <= deck2.length) {
-        console.log(" ???? SUBGAME ????");
-        winner = playRecursiveGame([...deck1], [...deck2], previousRounds);
+        // console.log(" ???? SUBGAME ????");
+        winner = playRecursiveGame(deck1.slice(0, card1), deck2.slice(0, card2), `${gameId}__sub`);
     } else {
         winner = card1 > card2 ? 1 : 2;
     }
@@ -58,16 +60,14 @@ function playRecursiveRound(deck1, deck2, previousRounds) {
     winnerDeck.push(winner === 1 ? card2 : card1);
 }
 
-function playRecursiveGame(deck1, deck2, previousRounds = []) {
+function playRecursiveGame(deck1, deck2, gameId = 'Main') {
     let turn = 1;
     let isLoop;
+    const previousRounds = new Map();
     while (deck1.length > 0 && deck2.length > 0 && !isLoop) {
-        console.log(`TURN ${turn}, ${previousRounds.length}`);
-        isLoop = playRecursiveRound(deck1, deck2, previousRounds);
+        // console.log(`Playing turn ${turn} on Game ${gameId}`)
+        isLoop = playRecursiveRound(deck1, deck2, previousRounds, gameId);
         turn++;
-        if (isLoop) {
-            console.log("==== LOOPING OUPS ====");
-        }
     }
     let winner;
     if (isLoop) {
@@ -75,7 +75,7 @@ function playRecursiveGame(deck1, deck2, previousRounds = []) {
     } else {
         winner = deck1.length === 0 ? 2 : 1;
     }
-    console.log(`====== FINISH GAME =====, WINNER: ${winner}`);
+    // console.log(`====== FINISH GAME =====, WINNER: ${winner}`);
     return winner;
 }
 
@@ -86,7 +86,7 @@ function getScore(deck) {
 function main() {
     console.time("exec");
     const resolving = ora("Reading file").start();
-    const rawInput = fs.readFileSync(path.resolve(__dirname, "test.txt"), "utf-8");
+    const rawInput = fs.readFileSync(path.resolve(__dirname, "input.txt"), "utf-8");
 
     const decks = rawInput.split("\n\n").map((rawDeck) => {
         return rawDeck
@@ -100,8 +100,6 @@ function main() {
 
     const winner = playRecursiveGame(decks[0], decks[1]);
     const winningDeck = decks[winner - 1];
-
-    console.log(winner, winningDeck)
     const result = getScore(winningDeck);
 
     resolving.succeed(`Jour ${chalk.red(22)} - the answer is ${chalk.bold.magenta(result)}`);
