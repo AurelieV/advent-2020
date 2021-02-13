@@ -18,7 +18,7 @@ function play(deck1, deck2) {
         playTurn(deck1, deck2);
         turn++;
     }
-    console.log(`FINISH in Turn ${turn}`);
+    // console.log(`FINISH in Turn ${turn}`);
 
     return deck1.length === 0 ? deck2 : deck1;
 }
@@ -26,31 +26,31 @@ function play(deck1, deck2) {
 function getHash(deck) {
     return deck.join('_');
 }
-function saveRound(deck1, deck2, previousRounds) {
+function getRoundHash(deck1, deck2) {
     const hash1 = getHash(deck1);
     const hash2 = getHash(deck2);
-    previousRounds.set(hash1, hash2);
+    
+    return `${hash1}//${hash2}`
 }
 function isALoop(deck1, deck2, previousRounds) {
-    const hash1 = getHash(deck1);
-    const hash2 = getHash(deck2);
-    return previousRounds.get(hash1) === hash2;
+    const hash = getRoundHash(deck1, deck2)
+    return previousRounds.get(hash)
 }
 
-function playRecursiveRound(deck1, deck2, previousRounds, gameId) {
+function playRecursiveRound(deck1, deck2, previousRounds) {
     if (isALoop(deck1, deck2, previousRounds)) {
         // console.log("Its a LOOP")
         return true;
     }
-    saveRound(deck1, deck2, previousRounds)
+    previousRounds.set(getRoundHash(deck1, deck2), true)
 
     const card1 = deck1.shift();
     const card2 = deck2.shift();
 
     let winner;
     if (card1 <= deck1.length && card2 <= deck2.length) {
-        // console.log(" ???? SUBGAME ????");
-        winner = playRecursiveGame(deck1.slice(0, card1), deck2.slice(0, card2), `${gameId}__sub`);
+        // console.log(` ???? SUBGAME (${card1} ${card2}) ????`);
+        winner = playRecursiveGame(deck1.slice(0, card1), deck2.slice(0, card2));
     } else {
         winner = card1 > card2 ? 1 : 2;
     }
@@ -60,13 +60,13 @@ function playRecursiveRound(deck1, deck2, previousRounds, gameId) {
     winnerDeck.push(winner === 1 ? card2 : card1);
 }
 
-function playRecursiveGame(deck1, deck2, gameId = 'Main') {
+function playRecursiveGame(deck1, deck2) {
     let turn = 1;
     let isLoop;
     const previousRounds = new Map();
     while (deck1.length > 0 && deck2.length > 0 && !isLoop) {
-        // console.log(`Playing turn ${turn} on Game ${gameId}`)
-        isLoop = playRecursiveRound(deck1, deck2, previousRounds, gameId);
+        // console.log(`Playing turn ${turn}`)
+        isLoop = playRecursiveRound(deck1, deck2, previousRounds);
         turn++;
     }
     let winner;
